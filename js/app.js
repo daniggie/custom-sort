@@ -214,6 +214,9 @@
 
     showLoading('Lendo planilha...');
 
+    const ext = pendingFile.name.split('.').pop().toLowerCase();
+    const isCsv = ext === 'csv';
+
     const reader = new FileReader();
 
     // Erro ao ler o arquivo (ex: arquivo corrompido)
@@ -231,8 +234,23 @@
       // setTimeout permite que o overlay de loading renderize antes do parse pesado
       setTimeout(() => {
         try {
-          const data = new Uint8Array(e.target.result);
-          const workbook = XLSX.read(data, { type: 'array' });
+          let workbook;
+
+          if (isCsv) {
+            // CSV: le como texto UTF-8 para preservar acentos
+            let text = e.target.result;
+            // Remove BOM se presente
+            if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+            // Detecta separador: se a primeira linha tem mais ";" que ",", usa ";"
+            const firstLine = text.split(/\r?\n/)[0];
+            const sep = (firstLine.split(';').length > firstLine.split(',').length) ? ';' : ',';
+            workbook = XLSX.read(text, { type: 'string', FS: sep });
+          } else {
+            // XLSX/XLS: le como binario
+            const data = new Uint8Array(e.target.result);
+            workbook = XLSX.read(data, { type: 'array' });
+          }
+
           const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
           const json = XLSX.utils.sheet_to_json(firstSheet, { defval: '' });
 
@@ -263,8 +281,9 @@
       }, 50);
     };
 
-    // Inicia a leitura do arquivo como ArrayBuffer
-    reader.readAsArrayBuffer(pendingFile);
+    // CSV: le como texto UTF-8; XLSX/XLS: le como binario
+    if (isCsv) reader.readAsText(pendingFile, 'UTF-8');
+    else reader.readAsArrayBuffer(pendingFile);
   }
 
   // ── Passo 2: Tela de configuracao ───────────────────────

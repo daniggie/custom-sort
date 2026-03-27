@@ -1,0 +1,9 @@
+ID;Prioridade;Descrição;Responsável
+001;baixa;Ajustar cor do botão;Ana
+002;crítica;Sistema fora do ar;Carlos
+003;média;Lentidão no relatório;Beatriz
+004;crítica;Dados não salvam;Carlos
+005;alta;Erro no login;Daniela
+006;baixa;Trocar ícone do menu;Ana
+007;média;Notificação duplicada;Beatriz
+008;alta;Timeout na API;Daniela

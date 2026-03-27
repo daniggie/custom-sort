@@ -1,0 +1,876 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CustomSort — Como funciona o algoritmo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+      :root {
+        --bg: #0a0f0a;
+        --surface: #111a11;
+        --surface-alt: #162016;
+        --primary: #00ff88;
+        --primary-hover: #00cc6a;
+        --primary-dim: #00ff8822;
+        --accent: #39ff14;
+        --text: #e0f5e0;
+        --text-muted: #6b8f6b;
+        --border: #1a3a1a;
+        --border-glow: #00ff8844;
+        --danger: #ff3b3b;
+        --warning: #ffb830;
+        --blue: #38bdf8;
+        --purple: #c084fc;
+        --font: 'Inter', system-ui, sans-serif;
+        --mono: 'JetBrains Mono', monospace;
+        --radius: 12px;
+        --radius-sm: 8px;
+        --glow: 0 0 20px rgba(0,255,136,.15);
+        --glow-strong: 0 0 30px rgba(0,255,136,.25);
+      }
+
+      body {
+        font-family: var(--font);
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.6;
+        min-height: 100vh;
+        padding: 2rem 1rem 4rem;
+      }
+
+      /* ── Header ──────────────────────────── */
+      .header {
+        text-align: center;
+        max-width: 720px;
+        margin: 0 auto 3rem;
+      }
+
+      .header h1 {
+        font-family: var(--mono);
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--primary);
+      }
+
+      .header h1 span { color: var(--text); }
+
+      .header p {
+        color: var(--text-muted);
+        font-size: .88rem;
+        margin-top: .5rem;
+        max-width: 540px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      /* ── Layout ──────────────────────────── */
+      .container {
+        max-width: 1100px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 2.5rem;
+      }
+
+      /* ── Etapa ───────────────────────────── */
+      .stage {
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--surface);
+        box-shadow: var(--glow);
+        overflow: hidden;
+      }
+
+      .stage__header {
+        display: flex;
+        align-items: center;
+        gap: .75rem;
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid var(--border);
+        background: #0d130d;
+      }
+
+      .stage__num {
+        width: 30px; height: 30px;
+        display: flex; align-items: center; justify-content: center;
+        border-radius: 50%;
+        font-family: var(--mono);
+        font-size: .85rem;
+        font-weight: 700;
+        background: var(--primary);
+        color: var(--bg);
+        flex-shrink: 0;
+      }
+
+      .stage__title {
+        font-size: 1rem;
+        font-weight: 600;
+      }
+
+      .stage__subtitle {
+        font-size: .78rem;
+        color: var(--text-muted);
+        margin-left: auto;
+        font-family: var(--mono);
+      }
+
+      .stage__body {
+        padding: 1.5rem;
+      }
+
+      /* ── Seta entre etapas ───────────────── */
+      .stage-arrow {
+        display: flex;
+        justify-content: center;
+        color: var(--primary);
+        opacity: .4;
+        margin: -1rem 0;
+      }
+
+      /* ── Tabela ──────────────────────────── */
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: .82rem;
+      }
+
+      th {
+        font-family: var(--mono);
+        font-size: .72rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        color: var(--text-muted);
+        padding: .5rem .75rem;
+        text-align: left;
+        border-bottom: 1px solid var(--border);
+      }
+
+      td {
+        padding: .55rem .75rem;
+        border-bottom: 1px solid #0f180f;
+      }
+
+      tr:last-child td { border-bottom: none; }
+
+      .col-highlight {
+        background: var(--primary-dim);
+        color: var(--primary);
+        font-weight: 600;
+      }
+
+      th.col-highlight {
+        color: var(--primary);
+        border-bottom-color: var(--border-glow);
+      }
+
+      .row-critica { --row-clr: #ff3b3b; }
+      .row-alta    { --row-clr: #ffb830; }
+      .row-media   { --row-clr: #38bdf8; }
+      .row-baixa   { --row-clr: #6b8f6b; }
+
+      .priority-dot {
+        display: inline-block;
+        width: 8px; height: 8px;
+        border-radius: 50%;
+        background: var(--row-clr);
+        margin-right: .4rem;
+        vertical-align: middle;
+      }
+
+      /* ── Grid lado a lado ────────────────── */
+      .side-by-side {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        gap: 1.5rem;
+        align-items: start;
+      }
+
+      .side-arrow {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding-top: 2.5rem;
+        color: var(--primary);
+      }
+
+      .side-arrow svg {
+        filter: drop-shadow(0 0 6px rgba(0,255,136,.4));
+      }
+
+      /* ── Lista de valores ────────────────── */
+      .value-list {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: .35rem;
+      }
+
+      .value-list li {
+        display: flex;
+        align-items: center;
+        gap: .6rem;
+        padding: .5rem .75rem;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        font-size: .82rem;
+        font-family: var(--mono);
+        transition: transform .2s, box-shadow .2s;
+      }
+
+      .value-list li .rank {
+        width: 22px; height: 22px;
+        display: flex; align-items: center; justify-content: center;
+        border-radius: 50%;
+        font-size: .7rem;
+        font-weight: 700;
+        background: var(--primary-dim);
+        color: var(--primary);
+        border: 1px solid var(--border-glow);
+        flex-shrink: 0;
+      }
+
+      .value-list li .val { flex: 1; }
+
+      .value-list li .index {
+        font-size: .7rem;
+        color: var(--text-muted);
+      }
+
+      /* ── Bloco de label ──────────────────── */
+      .panel-label {
+        font-family: var(--mono);
+        font-size: .7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        color: var(--text-muted);
+        margin-bottom: .6rem;
+        display: flex;
+        align-items: center;
+        gap: .4rem;
+      }
+
+      .panel-label .dot {
+        width: 6px; height: 6px;
+        border-radius: 50%;
+      }
+
+      .panel-label .dot--green  { background: var(--primary); }
+      .panel-label .dot--blue   { background: var(--blue); }
+      .panel-label .dot--purple { background: var(--purple); }
+
+      /* ── Mapa de prioridade ──────────────── */
+      .map-block {
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        overflow: hidden;
+      }
+
+      .map-block__header {
+        padding: .5rem .75rem;
+        border-bottom: 1px solid var(--border);
+        background: #0d130d;
+        font-family: var(--mono);
+        font-size: .72rem;
+        color: var(--text-muted);
+      }
+
+      .map-block__header code {
+        color: var(--purple);
+      }
+
+      .map-entry {
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+        padding: .45rem .75rem;
+        font-family: var(--mono);
+        font-size: .78rem;
+        border-bottom: 1px solid #0f180f;
+      }
+
+      .map-entry:last-child { border-bottom: none; }
+
+      .map-key {
+        color: var(--primary);
+        flex: 1;
+      }
+
+      .map-arrow-sym {
+        color: var(--text-muted);
+        font-size: .7rem;
+      }
+
+      .map-value {
+        width: 24px; height: 24px;
+        display: flex; align-items: center; justify-content: center;
+        border-radius: 50%;
+        font-weight: 700;
+        font-size: .75rem;
+        background: var(--primary-dim);
+        color: var(--primary);
+        border: 1px solid var(--border-glow);
+      }
+
+      /* ── Comparação sort ─────────────────── */
+      .compare-grid {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        gap: 1rem;
+        align-items: start;
+        margin-top: 1rem;
+      }
+
+      .compare-card {
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 1rem;
+        text-align: center;
+      }
+
+      .compare-card__label {
+        font-family: var(--mono);
+        font-size: .68rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        margin-bottom: .6rem;
+      }
+
+      .compare-card__row {
+        font-family: var(--mono);
+        font-size: .78rem;
+        margin-bottom: .3rem;
+      }
+
+      .compare-card__lookup {
+        font-family: var(--mono);
+        font-size: .72rem;
+        color: var(--text-muted);
+        margin-top: .35rem;
+        padding-top: .35rem;
+        border-top: 1px dashed var(--border);
+      }
+
+      .compare-card__lookup span {
+        color: var(--primary);
+        font-weight: 600;
+      }
+
+      .compare-vs {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding-top: 1.5rem;
+      }
+
+      .compare-vs__badge {
+        font-family: var(--mono);
+        font-size: .72rem;
+        font-weight: 700;
+        padding: .3rem .6rem;
+        border-radius: 4px;
+        background: var(--primary-dim);
+        color: var(--primary);
+        border: 1px solid var(--border-glow);
+      }
+
+      /* ── Código inline ───────────────────── */
+      .code-block {
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 1rem;
+        font-family: var(--mono);
+        font-size: .75rem;
+        line-height: 1.7;
+        overflow-x: auto;
+        margin-top: .75rem;
+      }
+
+      .code-block .kw  { color: var(--purple); }
+      .code-block .fn  { color: var(--blue); }
+      .code-block .str { color: var(--primary); }
+      .code-block .num { color: var(--warning); }
+      .code-block .cmt { color: var(--text-muted); font-style: italic; }
+      .code-block .op  { color: var(--text-muted); }
+
+      /* ── Resultado final: setas de posição ─ */
+      .result-row {
+        transition: background .2s;
+      }
+
+      .result-row:hover {
+        background: var(--surface-alt);
+      }
+
+      .pos-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 22px; height: 22px;
+        border-radius: 50%;
+        font-family: var(--mono);
+        font-size: .68rem;
+        font-weight: 700;
+        border: 1px solid var(--border-glow);
+        background: var(--primary-dim);
+        color: var(--primary);
+      }
+
+      /* ── Nota de rodapé ──────────────────── */
+      .footnote {
+        text-align: center;
+        font-size: .8rem;
+        color: var(--text-muted);
+        margin-top: 1rem;
+        font-family: var(--mono);
+      }
+
+      .footnote a {
+        color: var(--primary);
+        text-decoration: none;
+      }
+
+      /* ── Responsivo ──────────────────────── */
+      @media (max-width: 700px) {
+        .side-by-side {
+          grid-template-columns: 1fr;
+        }
+
+        .side-arrow {
+          transform: rotate(90deg);
+          padding: 0;
+        }
+
+        .compare-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .compare-vs {
+          padding: 0;
+          transform: rotate(90deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Header -->
+    <header class="header">
+      <h1><span>Custom</span>Sort <span style="font-weight:400;color:var(--text-muted)">— Algoritmo</span></h1>
+      <p>Passo a passo visual de como os valores unicos viram um mapa de prioridade e ordenam a planilha inteira.</p>
+    </header>
+
+    <div class="container">
+
+      <!-- ============================================================ -->
+      <!-- ETAPA 1 — DADOS ORIGINAIS                                    -->
+      <!-- ============================================================ -->
+      <section class="stage">
+        <div class="stage__header">
+          <span class="stage__num">1</span>
+          <span class="stage__title">Dados originais da planilha</span>
+          <span class="stage__subtitle">rawData[]</span>
+        </div>
+        <div class="stage__body">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th class="col-highlight">Prioridade</th>
+                <th>Descricao</th>
+                <th>Responsavel</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="row-baixa">
+                <td>001</td>
+                <td class="col-highlight"><span class="priority-dot"></span>baixa</td>
+                <td>Ajustar cor do botao</td>
+                <td>Ana</td>
+              </tr>
+              <tr class="row-critica">
+                <td>002</td>
+                <td class="col-highlight"><span class="priority-dot"></span>critica</td>
+                <td>Sistema fora do ar</td>
+                <td>Carlos</td>
+              </tr>
+              <tr class="row-media">
+                <td>003</td>
+                <td class="col-highlight"><span class="priority-dot"></span>media</td>
+                <td>Lentidao no relatorio</td>
+                <td>Beatriz</td>
+              </tr>
+              <tr class="row-critica">
+                <td>004</td>
+                <td class="col-highlight"><span class="priority-dot"></span>critica</td>
+                <td>Dados nao salvam</td>
+                <td>Carlos</td>
+              </tr>
+              <tr class="row-alta">
+                <td>005</td>
+                <td class="col-highlight"><span class="priority-dot"></span>alta</td>
+                <td>Erro no login</td>
+                <td>Daniela</td>
+              </tr>
+              <tr class="row-baixa">
+                <td>006</td>
+                <td class="col-highlight"><span class="priority-dot"></span>baixa</td>
+                <td>Trocar icone do menu</td>
+                <td>Ana</td>
+              </tr>
+              <tr class="row-media">
+                <td>007</td>
+                <td class="col-highlight"><span class="priority-dot"></span>media</td>
+                <td>Notificacao duplicada</td>
+                <td>Beatriz</td>
+              </tr>
+              <tr class="row-alta">
+                <td>008</td>
+                <td class="col-highlight"><span class="priority-dot"></span>alta</td>
+                <td>Timeout na API</td>
+                <td>Daniela</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Seta -->
+      <div class="stage-arrow">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+      </div>
+
+      <!-- ============================================================ -->
+      <!-- ETAPA 2 — EXTRAIR VALORES ÚNICOS                             -->
+      <!-- ============================================================ -->
+      <section class="stage">
+        <div class="stage__header">
+          <span class="stage__num">2</span>
+          <span class="stage__title">Extrair valores unicos da coluna</span>
+          <span class="stage__subtitle">Set + forEach</span>
+        </div>
+        <div class="stage__body">
+          <div class="side-by-side">
+            <!-- Coluna original -->
+            <div>
+              <div class="panel-label"><span class="dot dot--green"></span> Coluna "Prioridade" (todas as linhas)</div>
+              <ul class="value-list">
+                <li class="row-baixa"><span class="priority-dot"></span><span class="val">baixa</span></li>
+                <li class="row-critica"><span class="priority-dot"></span><span class="val">critica</span></li>
+                <li class="row-media"><span class="priority-dot"></span><span class="val">media</span></li>
+                <li class="row-critica"><span class="priority-dot"></span><span class="val">critica</span><span class="index">duplicado</span></li>
+                <li class="row-alta"><span class="priority-dot"></span><span class="val">alta</span></li>
+                <li class="row-baixa"><span class="priority-dot"></span><span class="val">baixa</span><span class="index">duplicado</span></li>
+                <li class="row-media"><span class="priority-dot"></span><span class="val">media</span><span class="index">duplicado</span></li>
+                <li class="row-alta"><span class="priority-dot"></span><span class="val">alta</span><span class="index">duplicado</span></li>
+              </ul>
+            </div>
+
+            <!-- Seta -->
+            <div class="side-arrow">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </div>
+
+            <!-- Valores únicos -->
+            <div>
+              <div class="panel-label"><span class="dot dot--blue"></span> Valores unicos (ordem de aparicao)</div>
+              <ul class="value-list">
+                <li class="row-baixa"><span class="rank">1</span><span class="priority-dot"></span><span class="val">baixa</span><span class="index">1a aparicao</span></li>
+                <li class="row-critica"><span class="rank">2</span><span class="priority-dot"></span><span class="val">critica</span><span class="index">1a aparicao</span></li>
+                <li class="row-media"><span class="rank">3</span><span class="priority-dot"></span><span class="val">media</span><span class="index">1a aparicao</span></li>
+                <li class="row-alta"><span class="rank">4</span><span class="priority-dot"></span><span class="val">alta</span><span class="index">1a aparicao</span></li>
+              </ul>
+
+              <div class="code-block" style="margin-top: 1rem;">
+                <span class="cmt">// Extrai valores unicos preservando a ordem</span><br>
+                <span class="kw">const</span> seen = <span class="kw">new</span> <span class="fn">Set</span>();<br>
+                rawData.<span class="fn">forEach</span>(<span class="op">(</span>row<span class="op">)</span> <span class="op">=></span> {<br>
+                &nbsp;&nbsp;<span class="kw">const</span> val = row[coluna];<br>
+                &nbsp;&nbsp;<span class="kw">if</span> (!seen.<span class="fn">has</span>(val)) {<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;seen.<span class="fn">add</span>(val);<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;uniqueValues.<span class="fn">push</span>(val);<br>
+                &nbsp;&nbsp;}<br>
+                });
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Seta -->
+      <div class="stage-arrow">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+      </div>
+
+      <!-- ============================================================ -->
+      <!-- ETAPA 3 — REORDENAR → MAPA DE PRIORIDADE                    -->
+      <!-- ============================================================ -->
+      <section class="stage">
+        <div class="stage__header">
+          <span class="stage__num">3</span>
+          <span class="stage__title">Arrastar para reordenar &rarr; Mapa de prioridade</span>
+          <span class="stage__subtitle">Map</span>
+        </div>
+        <div class="stage__body">
+          <div class="side-by-side">
+            <!-- Ordem do usuário -->
+            <div>
+              <div class="panel-label"><span class="dot dot--green"></span> Ordem definida pelo usuario (drag-and-drop)</div>
+              <ul class="value-list">
+                <li class="row-critica" style="border-color: var(--border-glow); box-shadow: var(--glow);">
+                  <span class="rank">1</span>
+                  <span class="priority-dot"></span>
+                  <span class="val">critica</span>
+                  <span class="index" style="color:var(--danger);">mais urgente</span>
+                </li>
+                <li class="row-alta" style="border-color: var(--border-glow);">
+                  <span class="rank">2</span>
+                  <span class="priority-dot"></span>
+                  <span class="val">alta</span>
+                </li>
+                <li class="row-media" style="border-color: var(--border-glow);">
+                  <span class="rank">3</span>
+                  <span class="priority-dot"></span>
+                  <span class="val">media</span>
+                </li>
+                <li class="row-baixa" style="border-color: var(--border-glow);">
+                  <span class="rank">4</span>
+                  <span class="priority-dot"></span>
+                  <span class="val">baixa</span>
+                  <span class="index" style="color:var(--text-muted);">menos urgente</span>
+                </li>
+              </ul>
+            </div>
+
+            <!-- Seta -->
+            <div class="side-arrow">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </div>
+
+            <!-- Mapa gerado -->
+            <div>
+              <div class="panel-label"><span class="dot dot--purple"></span> Mapa de prioridade gerado</div>
+              <div class="map-block">
+                <div class="map-block__header"><code>priorityMap</code> = new Map()</div>
+                <div class="map-entry">
+                  <span class="map-key">"critica"</span>
+                  <span class="map-arrow-sym">&rarr;</span>
+                  <span class="map-value">0</span>
+                </div>
+                <div class="map-entry">
+                  <span class="map-key">"alta"</span>
+                  <span class="map-arrow-sym">&rarr;</span>
+                  <span class="map-value">1</span>
+                </div>
+                <div class="map-entry">
+                  <span class="map-key">"media"</span>
+                  <span class="map-arrow-sym">&rarr;</span>
+                  <span class="map-value">2</span>
+                </div>
+                <div class="map-entry">
+                  <span class="map-key">"baixa"</span>
+                  <span class="map-arrow-sym">&rarr;</span>
+                  <span class="map-value">3</span>
+                </div>
+              </div>
+
+              <div class="code-block" style="margin-top: 1rem;">
+                <span class="cmt">// Cada valor recebe seu indice como peso</span><br>
+                <span class="kw">const</span> priorityMap = <span class="kw">new</span> <span class="fn">Map</span>();<br>
+                items.<span class="fn">forEach</span>(<span class="op">(</span>li, i<span class="op">)</span> <span class="op">=></span> {<br>
+                &nbsp;&nbsp;priorityMap.<span class="fn">set</span>(li.value, i);<br>
+                });<br>
+                <br>
+                <span class="cmt">// Resultado:</span><br>
+                <span class="cmt">// "critica" &rarr; 0</span><br>
+                <span class="cmt">// "alta" &nbsp;&nbsp;&nbsp;&rarr; 1</span><br>
+                <span class="cmt">// "media" &nbsp;&nbsp;&rarr; 2</span><br>
+                <span class="cmt">// "baixa" &nbsp;&nbsp;&rarr; 3</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Seta -->
+      <div class="stage-arrow">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+      </div>
+
+      <!-- ============================================================ -->
+      <!-- ETAPA 4 — COMO O SORT COMPARA                                -->
+      <!-- ============================================================ -->
+      <section class="stage">
+        <div class="stage__header">
+          <span class="stage__num">4</span>
+          <span class="stage__title">Como o Array.sort() compara duas linhas</span>
+          <span class="stage__subtitle">sort(a, b)</span>
+        </div>
+        <div class="stage__body">
+          <p style="font-size:.82rem;color:var(--text-muted);margin-bottom:1rem;">
+            Para cada par de linhas, o algoritmo consulta o mapa e compara os indices. Quem tem indice <strong style="color:var(--primary)">menor</strong> vem antes.
+          </p>
+
+          <!-- Exemplo 1 -->
+          <div class="compare-grid">
+            <div class="compare-card">
+              <div class="compare-card__label">Linha A (id 001)</div>
+              <div class="compare-card__row">prioridade = <span style="color:var(--text-muted)">"baixa"</span></div>
+              <div class="compare-card__lookup">priorityMap.get(<span>"baixa"</span>) = <span>3</span></div>
+            </div>
+            <div class="compare-vs">
+              <span class="compare-vs__badge">3 &minus; 0 = 3 &gt; 0<br>B vem antes</span>
+            </div>
+            <div class="compare-card">
+              <div class="compare-card__label">Linha B (id 002)</div>
+              <div class="compare-card__row">prioridade = <span style="color:var(--danger)">"critica"</span></div>
+              <div class="compare-card__lookup">priorityMap.get(<span>"critica"</span>) = <span>0</span></div>
+            </div>
+          </div>
+
+          <!-- Exemplo 2 -->
+          <div class="compare-grid" style="margin-top:1.5rem;">
+            <div class="compare-card">
+              <div class="compare-card__label">Linha A (id 005)</div>
+              <div class="compare-card__row">prioridade = <span style="color:var(--warning)">"alta"</span></div>
+              <div class="compare-card__lookup">priorityMap.get(<span>"alta"</span>) = <span>1</span></div>
+            </div>
+            <div class="compare-vs">
+              <span class="compare-vs__badge">1 &minus; 2 = &minus;1 &lt; 0<br>A vem antes</span>
+            </div>
+            <div class="compare-card">
+              <div class="compare-card__label">Linha B (id 003)</div>
+              <div class="compare-card__row">prioridade = <span style="color:var(--blue)">"media"</span></div>
+              <div class="compare-card__lookup">priorityMap.get(<span>"media"</span>) = <span>2</span></div>
+            </div>
+          </div>
+
+          <div class="code-block" style="margin-top:1.25rem;">
+            <span class="cmt">// Funcao de comparacao do sort</span><br>
+            sortedData = [...rawData].<span class="fn">sort</span>(<span class="op">(</span>a, b<span class="op">)</span> <span class="op">=></span> {<br>
+            &nbsp;&nbsp;<span class="kw">const</span> pa = priorityMap.<span class="fn">get</span>(a[coluna]) ?? <span class="num">Infinity</span>;<br>
+            &nbsp;&nbsp;<span class="kw">const</span> pb = priorityMap.<span class="fn">get</span>(b[coluna]) ?? <span class="num">Infinity</span>;<br>
+            &nbsp;&nbsp;<span class="kw">return</span> pa <span class="op">-</span> pb; &nbsp;<span class="cmt">// negativo = a antes, positivo = b antes</span><br>
+            });
+          </div>
+        </div>
+      </section>
+
+      <!-- Seta -->
+      <div class="stage-arrow">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+      </div>
+
+      <!-- ============================================================ -->
+      <!-- ETAPA 5 — RESULTADO FINAL                                    -->
+      <!-- ============================================================ -->
+      <section class="stage">
+        <div class="stage__header">
+          <span class="stage__num">5</span>
+          <span class="stage__title">Resultado — Planilha ordenada</span>
+          <span class="stage__subtitle">sortedData[]</span>
+        </div>
+        <div class="stage__body">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:36px;">Pos</th>
+                <th>ID</th>
+                <th class="col-highlight">Prioridade</th>
+                <th style="width:40px;">Indice</th>
+                <th>Descricao</th>
+                <th>Responsavel</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="result-row row-critica">
+                <td><span class="pos-badge">1</span></td>
+                <td>002</td>
+                <td class="col-highlight"><span class="priority-dot"></span>critica</td>
+                <td><span class="pos-badge">0</span></td>
+                <td>Sistema fora do ar</td>
+                <td>Carlos</td>
+              </tr>
+              <tr class="result-row row-critica">
+                <td><span class="pos-badge">2</span></td>
+                <td>004</td>
+                <td class="col-highlight"><span class="priority-dot"></span>critica</td>
+                <td><span class="pos-badge">0</span></td>
+                <td>Dados nao salvam</td>
+                <td>Carlos</td>
+              </tr>
+              <tr class="result-row row-alta">
+                <td><span class="pos-badge">3</span></td>
+                <td>005</td>
+                <td class="col-highlight"><span class="priority-dot"></span>alta</td>
+                <td><span class="pos-badge">1</span></td>
+                <td>Erro no login</td>
+                <td>Daniela</td>
+              </tr>
+              <tr class="result-row row-alta">
+                <td><span class="pos-badge">4</span></td>
+                <td>008</td>
+                <td class="col-highlight"><span class="priority-dot"></span>alta</td>
+                <td><span class="pos-badge">1</span></td>
+                <td>Timeout na API</td>
+                <td>Daniela</td>
+              </tr>
+              <tr class="result-row row-media">
+                <td><span class="pos-badge">5</span></td>
+                <td>003</td>
+                <td class="col-highlight"><span class="priority-dot"></span>media</td>
+                <td><span class="pos-badge">2</span></td>
+                <td>Lentidao no relatorio</td>
+                <td>Beatriz</td>
+              </tr>
+              <tr class="result-row row-media">
+                <td><span class="pos-badge">6</span></td>
+                <td>007</td>
+                <td class="col-highlight"><span class="priority-dot"></span>media</td>
+                <td><span class="pos-badge">2</span></td>
+                <td>Notificacao duplicada</td>
+                <td>Beatriz</td>
+              </tr>
+              <tr class="result-row row-baixa">
+                <td><span class="pos-badge">7</span></td>
+                <td>001</td>
+                <td class="col-highlight"><span class="priority-dot"></span>baixa</td>
+                <td><span class="pos-badge">3</span></td>
+                <td>Ajustar cor do botao</td>
+                <td>Ana</td>
+              </tr>
+              <tr class="result-row row-baixa">
+                <td><span class="pos-badge">8</span></td>
+                <td>006</td>
+                <td class="col-highlight"><span class="priority-dot"></span>baixa</td>
+                <td><span class="pos-badge">3</span></td>
+                <td>Trocar icone do menu</td>
+                <td>Ana</td>
+              </tr>
+            </tbody>
+          </table>
+          <p class="footnote" style="margin-top:1rem;">
+            Linhas com mesmo indice mantem a ordem relativa original &mdash; o <code style="font-family:var(--mono);color:var(--primary);background:var(--primary-dim);padding:.1rem .3rem;border-radius:3px;">Array.sort()</code> do JavaScript e estavel desde o ES2019.
+          </p>
+        </div>
+      </section>
+
+    </div>
+
+    <p class="footnote" style="margin-top:2.5rem;">
+      CustomSort &mdash; by Daniela Gross
+    </p>
+  </body>
+</html>
