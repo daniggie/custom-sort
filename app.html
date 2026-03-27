@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CustomSort — Showcase</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Prism.js para syntax highlight do codigo -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-okaidia.min.css"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/showcase.css" />
+  </head>
+  <body>
+    <!-- CABECALHO DO SHOWCASE -->
+    <header class="sc-header">
+      <div class="sc-header__left">
+        <svg
+          class="sc-header__icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M3 6h18" />
+          <path d="M6 12h12" />
+          <path d="M9 18h6" />
+        </svg>
+        <h1 class="sc-header__title">
+          Custom<span class="sc-header__accent">Sort</span>
+        </h1>
+        <span class="sc-header__tag">Showcase</span>
+      </div>
+      <div class="sc-header__tabs">
+        <button class="sc-tab active" data-section="leitura">
+          1. Leitura
+        </button>
+        <button class="sc-tab" data-section="extracao">2. Extracao</button>
+        <button class="sc-tab" data-section="ordenacao">3. Ordenacao</button>
+        <button class="sc-tab" data-section="exportacao">4. Exportacao</button>
+      </div>
+    </header>
+
+    <!-- CONTEUDO SPLIT-SCREEN -->
+    <main class="sc-split">
+      <!-- LADO ESQUERDO: APP FUNCIONAL -->
+      <div class="sc-panel sc-panel--app">
+        <div class="sc-panel__bar">
+          <span class="sc-panel__dot sc-panel__dot--red"></span>
+          <span class="sc-panel__dot sc-panel__dot--yellow"></span>
+          <span class="sc-panel__dot sc-panel__dot--green"></span>
+          <span class="sc-panel__label">Interface da Aplicacao</span>
+        </div>
+        <iframe
+          src="index.html"
+          class="sc-iframe"
+          id="app-iframe"
+          title="CustomSort App"
+        ></iframe>
+      </div>
+
+      <!-- LADO DIREITO: CODIGO COM EXPLICACAO -->
+      <div class="sc-panel sc-panel--code">
+        <div class="sc-panel__bar">
+          <span class="sc-panel__dot sc-panel__dot--red"></span>
+          <span class="sc-panel__dot sc-panel__dot--yellow"></span>
+          <span class="sc-panel__dot sc-panel__dot--green"></span>
+          <span class="sc-panel__label">app.js — Logica do Negocio</span>
+        </div>
+
+        <div class="sc-code-scroll" id="code-scroll">
+          <!-- SECAO 1: LEITURA DO ARQUIVO -->
+          <div class="sc-section active" id="sec-leitura">
+            <div class="sc-explain">
+              <span class="sc-explain__step">Passo 1</span>
+              <h2 class="sc-explain__title">Leitura da Planilha</h2>
+              <p class="sc-explain__text">
+                O usuario seleciona um arquivo
+                <code>.xlsx</code>, <code>.xls</code> ou <code>.csv</code>.
+                O <strong>FileReader</strong> le o binario e o
+                <strong>SheetJS</strong> converte para um array de objetos
+                JavaScript — cada objeto e uma linha da planilha.
+              </p>
+            </div>
+            <pre class="sc-pre"><code class="language-javascript">// O FileReader le o arquivo como binario (ArrayBuffer)
+reader.readAsArrayBuffer(pendingFile);
+
+reader.onload = (e) => {
+  // SheetJS converte o binario em um workbook
+  const data = new Uint8Array(e.target.result);
+  const workbook = XLSX.read(data, { type: 'array' });
+
+  // Pega a primeira aba da planilha
+  const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+
+  // Converte para array de objetos JS
+  // Cada objeto = uma linha, cada chave = uma coluna
+  const json = XLSX.utils.sheet_to_json(firstSheet, { defval: '' });
+
+  // Resultado:
+  // [
+  //   { id: 1, prioridade: "verde", descricao: "Tarefa 123" },
+  //   { id: 2, prioridade: "azul",  descricao: "Tarefa 456" },
+  //   ...
+  // ]
+
+  rawData = json;
+  headers = Object.keys(json[0]); // ["id", "prioridade", "descricao"]
+};</code></pre>
+          </div>
+
+          <!-- SECAO 2: EXTRACAO DE VALORES UNICOS -->
+          <div class="sc-section" id="sec-extracao">
+            <div class="sc-explain">
+              <span class="sc-explain__step">Passo 2</span>
+              <h2 class="sc-explain__title">Extracao de Valores Unicos</h2>
+              <p class="sc-explain__text">
+                Quando o usuario clica em uma coluna, o sistema percorre todas
+                as linhas e coleta os valores
+                <strong>sem repetir</strong>, preservando a ordem de aparicao.
+                Usa um <code>Set</code> para garantir unicidade.
+              </p>
+            </div>
+            <pre class="sc-pre"><code class="language-javascript">function selectColumn(col) {
+  selectedColumn = col;
+
+  // Set para rastrear o que ja foi visto
+  const seen = new Set();
+  uniqueValues = [];
+
+  // Percorre cada linha da planilha
+  rawData.forEach((row) => {
+    const val = String(row[col] ?? '');
+
+    // Se o valor ainda nao apareceu, adiciona a lista
+    if (!seen.has(val)) {
+      seen.add(val);
+      uniqueValues.push(val);
+    }
+  });
+
+  // Exemplo com coluna "prioridade":
+  // uniqueValues = ["verde", "azul", "turquesa"]
+  //
+  // Esses valores sao exibidos na lista arrastavel
+  // para o usuario definir a ordem que deseja.
+}</code></pre>
+          </div>
+
+          <!-- SECAO 3: LOGICA DE ORDENACAO -->
+          <div class="sc-section" id="sec-ordenacao">
+            <div class="sc-explain">
+              <span class="sc-explain__step">Passo 3</span>
+              <h2 class="sc-explain__title">Ordenacao Personalizada</h2>
+              <p class="sc-explain__text">
+                O coracao do sistema. Cria um
+                <strong>mapa de prioridade</strong> (Map) a partir da ordem
+                definida pelo usuario. Depois usa
+                <code>Array.sort()</code> comparando os indices — quem tem
+                indice menor vem primeiro. Valores nao mapeados vao para o
+                final.
+              </p>
+            </div>
+            <pre class="sc-pre"><code class="language-javascript">function generateResult() {
+  // 1. Le a ordem que o usuario definiu arrastando os itens
+  const items = sortableEl.querySelectorAll('li');
+
+  // 2. Cria o mapa de prioridade:
+  //    "azul"     => 0 (primeiro)
+  //    "verde"    => 1 (segundo)
+  //    "turquesa" => 2 (terceiro)
+  const priorityMap = new Map();
+  items.forEach((li, i) => {
+    priorityMap.set(li.dataset.value, i);
+  });
+
+  // 3. Valores desconhecidos vao para o final
+  const fallback = items.length;
+
+  // 4. Ordena a planilha inteira usando o mapa
+  sortedData = [...rawData].sort((a, b) => {
+    const va = String(a[selectedColumn] ?? '');
+    const vb = String(b[selectedColumn] ?? '');
+
+    // Busca o indice de cada valor no mapa
+    const pa = priorityMap.has(va)
+      ? priorityMap.get(va) : fallback;
+    const pb = priorityMap.has(vb)
+      ? priorityMap.get(vb) : fallback;
+
+    // Menor indice vem primeiro
+    // Ex: "azul"(0) - "verde"(1) = -1 → azul vem antes
+    return pa - pb;
+  });
+}</code></pre>
+          </div>
+
+          <!-- SECAO 4: EXPORTACAO -->
+          <div class="sc-section" id="sec-exportacao">
+            <div class="sc-explain">
+              <span class="sc-explain__step">Passo 4</span>
+              <h2 class="sc-explain__title">Exportacao do Resultado</h2>
+              <p class="sc-explain__text">
+                Com os dados ordenados, o SheetJS converte de volta para uma
+                planilha e gera o download. Tambem suporta
+                <code>.csv</code> com BOM UTF-8 para garantir que acentos
+                aparecam corretamente no Excel.
+              </p>
+            </div>
+            <pre class="sc-pre"><code class="language-javascript">// Download como .xlsx
+function downloadXlsx() {
+  // Converte o array de objetos de volta para uma sheet
+  const ws = XLSX.utils.json_to_sheet(sortedData, {
+    header: headers
+  });
+
+  // Cria um workbook e adiciona a sheet
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Ordenado');
+
+  // Dispara o download
+  XLSX.writeFile(wb, 'planilha_customsort.xlsx');
+}
+
+// Download como .csv (com BOM UTF-8)
+function downloadCsv() {
+  const ws = XLSX.utils.json_to_sheet(sortedData, {
+    header: headers
+  });
+  const csv = XLSX.utils.sheet_to_csv(ws);
+
+  // BOM (\uFEFF) garante que o Excel reconheca UTF-8
+  const blob = new Blob(
+    ['\uFEFF' + csv],
+    { type: 'text/csv;charset=utf-8;' }
+  );
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'planilha_customsort.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}</code></pre>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- RODAPE -->
+    <footer class="sc-footer">
+      <span class="sc-footer__credit">By Daniela Gross</span>
+    </footer>
+
+    <!-- Prism.js para syntax highlighting -->
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-javascript.min.js"></script>
+
+    <!-- Logica do showcase (troca de abas) -->
+    <script>
+      (() => {
+        const tabs = document.querySelectorAll(".sc-tab");
+        const sections = document.querySelectorAll(".sc-section");
+
+        tabs.forEach((tab) => {
+          tab.addEventListener("click", () => {
+            // Atualiza aba ativa
+            tabs.forEach((t) => t.classList.remove("active"));
+            tab.classList.add("active");
+
+            // Mostra a secao correspondente
+            const target = tab.dataset.section;
+            sections.forEach((s) => s.classList.remove("active"));
+            document
+              .getElementById("sec-" + target)
+              .classList.add("active");
+          });
+        });
+      })();
+    </script>
+  </body>
+</html>
