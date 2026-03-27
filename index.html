@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CustomSort — Ordenacao Personalizada de Planilhas</title>
+    <link rel="stylesheet" href="css/style.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <!-- BARRA DE PROGRESSO FIXA NO TOPO -->
+    <div class="progress-bar">
+      <div class="progress-bar__track">
+        <div class="progress-bar__fill" id="progress-fill"></div>
+      </div>
+      <div class="progress-bar__steps">
+        <button class="progress-step active" data-step="1">
+          <span class="progress-step__num">1</span
+          ><span class="progress-step__label">Importar</span>
+        </button>
+        <button class="progress-step" data-step="2">
+          <span class="progress-step__num">2</span
+          ><span class="progress-step__label">Configurar</span>
+        </button>
+        <button class="progress-step" data-step="3">
+          <span class="progress-step__num">3</span
+          ><span class="progress-step__label">Resultado</span>
+        </button>
+      </div>
+    </div>
+
+    <div id="app">
+      <!-- ===== PASSO 1: IMPORTAR ARQUIVO ===== -->
+      <section id="step-upload" class="view active">
+        <div class="view__center">
+          <div class="brand">
+            <svg
+              class="brand__icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M3 6h18" />
+              <path d="M6 12h12" />
+              <path d="M9 18h6" />
+            </svg>
+            <h1 class="brand__name">
+              Custom<span class="brand__accent">Sort</span>
+            </h1>
+          </div>
+          <p class="view__subtitle">
+            Ordene sua planilha do jeito que faz sentido para você.<br />Importe
+            o arquivo, escolha a coluna e defina a prioridade.
+          </p>
+
+          <label class="upload-area" id="upload-area" tabindex="0">
+            <input
+              type="file"
+              id="file-input"
+              accept=".xlsx,.xls,.csv"
+              hidden
+            />
+            <svg
+              class="upload-area__icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+            <span class="upload-area__text"
+              >Clique ou arraste o arquivo aqui</span
+            >
+            <span class="upload-area__formats">.xlsx, .xls, .csv</span>
+            <span class="upload-area__hint" id="file-name"></span>
+          </label>
+
+          <button
+            class="btn btn--primary btn--lg"
+            id="btn-next-upload"
+            disabled
+          >
+            Proximo
+          </button>
+        </div>
+      </section>
+
+      <!-- ===== PASSO 2: CONFIGURAR COLUNA E ORDEM (lado a lado) ===== -->
+      <section id="step-configure" class="view">
+        <header class="view__header">
+          <div class="brand brand--sm">
+            <svg
+              class="brand__icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M3 6h18" />
+              <path d="M6 12h12" />
+              <path d="M9 18h6" />
+            </svg>
+            <h1 class="brand__name">
+              Custom<span class="brand__accent">Sort</span>
+            </h1>
+          </div>
+          <span class="file-badge" id="file-badge"></span>
+        </header>
+
+        <div class="configure-grid">
+          <!-- ESQUERDA: Seletor de coluna -->
+          <div class="panel">
+            <div class="panel__header">
+              <span class="panel__badge">A</span>
+              <h2 class="panel__title">Escolha a coluna</h2>
+            </div>
+            <p class="panel__desc">
+              Qual coluna sera usada como base de categorizacao?
+            </p>
+            <div class="column-grid" id="column-grid"></div>
+          </div>
+
+          <!-- DIREITA: Lista de ordenacao -->
+          <div class="panel" id="panel-order">
+            <div class="panel__header">
+              <span class="panel__badge">B</span>
+              <h2 class="panel__title">Defina a ordem</h2>
+            </div>
+            <p class="panel__desc">
+              Arraste os valores para definir a prioridade desejada.
+            </p>
+            <div class="order-placeholder" id="order-placeholder">
+              Selecione uma coluna ao lado para ver os valores aqui.
+            </div>
+            <ul class="sortable-list" id="sortable-list"></ul>
+          </div>
+        </div>
+
+        <div class="view__actions">
+          <button class="btn btn--primary btn--lg" id="btn-generate" disabled>
+            Gerar planilha ordenada
+          </button>
+        </div>
+      </section>
+
+      <!-- ===== PASSO 3: RESULTADO COM PREVIA E DOWNLOAD ===== -->
+      <section id="step-result" class="view">
+        <header class="view__header">
+          <div class="brand brand--sm">
+            <svg
+              class="brand__icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M3 6h18" />
+              <path d="M6 12h12" />
+              <path d="M9 18h6" />
+            </svg>
+            <h1 class="brand__name">
+              Custom<span class="brand__accent">Sort</span>
+            </h1>
+          </div>
+          <span class="result-tag">Ordenacao concluida</span>
+        </header>
+
+        <div class="table-wrapper" id="table-wrapper">
+          <table class="preview-table" id="preview-table"></table>
+        </div>
+
+        <div class="view__actions">
+          <button class="btn btn--ghost btn--lg" id="btn-back-configure">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+            Voltar e ajustar
+          </button>
+          <button class="btn btn--primary btn--lg" id="btn-download">
+            Baixar planilha (.xlsx)
+          </button>
+          <button class="btn btn--secondary btn--lg" id="btn-download-csv">
+            Baixar como .csv
+          </button>
+        </div>
+      </section>
+    </div>
+
+    <!-- OVERLAY DE CARREGAMENTO -->
+    <div class="loading-overlay" id="loading-overlay">
+      <div class="loading">
+        <div class="loading__spinner"></div>
+        <p class="loading__text" id="loading-text">Processando planilha...</p>
+        <p class="loading__hint">
+          Isso pode levar alguns segundos para arquivos grandes.
+        </p>
+      </div>
+    </div>
+
+    <!-- MODAL DE ERRO -->
+    <div class="modal-overlay" id="modal-overlay">
+      <div class="modal" id="modal">
+        <div class="modal__icon" id="modal-icon">
+          <svg
+            width="28"
+            height="28"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+        </div>
+        <h3 class="modal__title" id="modal-title">Erro</h3>
+        <p class="modal__message" id="modal-message">Algo deu errado.</p>
+        <button class="btn btn--primary" id="modal-close">Entendi</button>
+      </div>
+    </div>
+
+    <!-- RODAPE FIXO COM BOTAO RECOMECAR -->
+    <footer class="app-footer" id="app-footer">
+      <button class="footer-restart" id="btn-restart">
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <polyline points="1 4 1 10 7 10" />
+          <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+        </svg>
+        Recomeçar com outro arquivo
+      </button>
+      <span class="footer-credit">By Daniela Gross</span>
+    </footer>
+
+    <!-- BIBLIOTECAS VIA CDN (sem necessidade de build) -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
+    <!-- LOGICA DA APLICACAO -->
+    <script src="js/app.js"></script>
+  </body>
+</html>

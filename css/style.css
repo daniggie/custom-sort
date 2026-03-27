@@ -1,0 +1,925 @@
+/* ===== RESET E BASE GLOBAL ===== */
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  /* Paleta Cyberpunk Verde */
+  --clr-bg: #0a0f0a;            /* fundo principal escuro */
+  --clr-surface: #111a11;        /* superficie dos cards */
+  --clr-surface-alt: #162016;    /* superficie alternativa (hover de tabela) */
+  --clr-primary: #00ff88;        /* verde neon principal */
+  --clr-primary-hover: #00cc6a;  /* verde neon ao passar o mouse */
+  --clr-primary-dim: #00ff8822;  /* verde neon transparente (glow sutil) */
+  --clr-primary-light: #0d1f14; /* fundo levemente esverdeado */
+  --clr-accent: #39ff14;         /* verde lima eletrico (destaques) */
+  --clr-accent-hover: #2ecc10;   /* verde lima mais escuro */
+  --clr-text: #e0f5e0;           /* texto principal claro */
+  --clr-text-muted: #6b8f6b;     /* texto secundario esmaecido */
+  --clr-border: #1a3a1a;         /* bordas escuras esverdeadas */
+  --clr-border-glow: #00ff8844;  /* borda com brilho neon */
+  --clr-drag: #39ff14;           /* cor ao arrastar item */
+  --clr-danger: #ff3b3b;         /* vermelho para erros */
+  --clr-warning: #ffb830;        /* amarelo para avisos */
+
+  /* Espacamento e bordas */
+  --radius: 12px;
+  --radius-sm: 8px;
+  --radius-xs: 6px;
+
+  /* Sombras com brilho neon */
+  --shadow-sm: 0 1px 4px rgba(0, 255, 136, .06);
+  --shadow-md: 0 4px 24px rgba(0, 255, 136, .1);
+  --shadow-lg: 0 8px 40px rgba(0, 255, 136, .15);
+  --glow: 0 0 20px rgba(0, 255, 136, .15);
+  --glow-strong: 0 0 30px rgba(0, 255, 136, .25);
+
+  /* Tipografia */
+  --font: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --transition: .2s ease;
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font);
+  background: var(--clr-bg);
+  color: var(--clr-text);
+  line-height: 1.6;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===== BARRA DE PROGRESSO (TOPO FIXO) ===== */
+.progress-bar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--clr-surface);
+  border-bottom: 1px solid var(--clr-border);
+  padding: .6rem 1.5rem;
+}
+
+/* Trilha da barra de progresso */
+.progress-bar__track {
+  height: 2px;
+  background: var(--clr-border);
+  border-radius: 2px;
+  margin-bottom: .6rem;
+  overflow: hidden;
+}
+
+/* Preenchimento animado da barra */
+.progress-bar__fill {
+  height: 100%;
+  width: 33.33%;
+  background: var(--clr-primary);
+  border-radius: 2px;
+  transition: width .4s ease;
+  box-shadow: 0 0 8px var(--clr-primary);
+}
+
+/* Container dos passos */
+.progress-bar__steps {
+  display: flex;
+  justify-content: center;
+  gap: 2.5rem;
+}
+
+/* Cada passo individual */
+.progress-step {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  background: none;
+  border: none;
+  font-family: var(--font);
+  font-size: .78rem;
+  font-weight: 500;
+  color: var(--clr-text-muted);
+  cursor: default;
+  padding: 0;
+  transition: color var(--transition);
+}
+
+/* Passo ativo */
+.progress-step.active {
+  color: var(--clr-primary);
+  font-weight: 700;
+}
+
+/* Passo concluido */
+.progress-step.done {
+  color: var(--clr-accent-hover);
+}
+
+/* Numero do passo (circulo) */
+.progress-step__num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  font-size: .7rem;
+  font-weight: 700;
+  border: 2px solid var(--clr-border);
+  color: var(--clr-text-muted);
+  transition: all var(--transition);
+}
+
+/* Numero do passo quando ativo */
+.progress-step.active .progress-step__num {
+  background: var(--clr-primary);
+  border-color: var(--clr-primary);
+  color: var(--clr-bg);
+  box-shadow: var(--glow);
+}
+
+/* Numero do passo quando concluido */
+.progress-step.done .progress-step__num {
+  background: var(--clr-accent-hover);
+  border-color: var(--clr-accent-hover);
+  color: var(--clr-bg);
+}
+
+/* Rotulo do passo (esconde em telas pequenas) */
+.progress-step__label {
+  display: none;
+}
+
+@media (min-width: 480px) {
+  .progress-step__label {
+    display: inline;
+  }
+}
+
+/* ===== LAYOUT PRINCIPAL ===== */
+#app {
+  flex: 1;
+  max-width: 1060px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 2rem;
+}
+
+/* ===== VIEWS (visibilidade exclusiva — uma por vez) ===== */
+.view {
+  display: none;
+  animation: viewIn .4s ease;
+}
+
+.view.active {
+  display: block;
+}
+
+/* Animacao de entrada das views */
+@keyframes viewIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== MARCA / LOGO ===== */
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  margin-bottom: .5rem;
+}
+
+.brand__icon {
+  width: 30px;
+  height: 30px;
+  color: var(--clr-primary);
+  filter: drop-shadow(0 0 6px var(--clr-primary-dim));
+}
+
+.brand__name {
+  font-size: 1.65rem;
+  font-weight: 800;
+  letter-spacing: -.03em;
+  color: var(--clr-text);
+  font-family: var(--font-mono);
+}
+
+/* Parte destacada do nome (neon) */
+.brand__accent {
+  color: var(--clr-primary);
+  text-shadow: 0 0 12px var(--clr-primary-dim);
+}
+
+/* Variante menor da marca */
+.brand--sm .brand__icon {
+  width: 22px;
+  height: 22px;
+}
+
+.brand--sm .brand__name {
+  font-size: 1.1rem;
+}
+
+/* ===== PASSO 1: TELA DE UPLOAD ===== */
+.view__center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 520px;
+  margin: 3rem auto 0;
+}
+
+.view__subtitle {
+  color: var(--clr-text-muted);
+  font-size: .92rem;
+  margin-bottom: 2rem;
+  line-height: 1.65;
+}
+
+/* Area de arrastar/clicar para upload */
+.upload-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: .4rem;
+  width: 100%;
+  border: 2px dashed var(--clr-border);
+  border-radius: var(--radius);
+  padding: 2.5rem 1.5rem;
+  cursor: pointer;
+  transition: border-color var(--transition), background var(--transition), box-shadow var(--transition);
+  background: var(--clr-surface);
+  margin-bottom: 1.5rem;
+}
+
+/* Hover, foco e arrastar sobre a area */
+.upload-area:hover,
+.upload-area:focus-within,
+.upload-area.dragover {
+  border-color: var(--clr-primary);
+  background: var(--clr-primary-light);
+  box-shadow: var(--glow);
+}
+
+/* Icone de upload */
+.upload-area__icon {
+  width: 42px;
+  height: 42px;
+  color: var(--clr-primary);
+  margin-bottom: .25rem;
+  filter: drop-shadow(0 0 8px var(--clr-primary-dim));
+}
+
+/* Texto principal da area de upload */
+.upload-area__text {
+  font-weight: 600;
+  font-size: .95rem;
+  color: var(--clr-primary);
+}
+
+/* Formatos aceitos */
+.upload-area__formats {
+  font-size: .78rem;
+  color: var(--clr-text-muted);
+  font-weight: 500;
+  font-family: var(--font-mono);
+}
+
+/* Nome do arquivo selecionado */
+.upload-area__hint {
+  font-size: .82rem;
+  color: var(--clr-accent);
+  font-weight: 600;
+  min-height: 1.2em;
+  font-family: var(--font-mono);
+}
+
+/* ===== BOTOES ===== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .45rem;
+  padding: .65rem 1.5rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: var(--font);
+  font-size: .875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+/* Botao desabilitado */
+.btn:disabled {
+  opacity: .3;
+  cursor: not-allowed;
+}
+
+/* Tamanho grande */
+.btn--lg {
+  padding: .8rem 2rem;
+  font-size: .95rem;
+  border-radius: var(--radius);
+}
+
+/* Botao primario (neon verde) */
+.btn--primary {
+  background: var(--clr-primary);
+  color: var(--clr-bg);
+  font-weight: 700;
+}
+
+.btn--primary:not(:disabled):hover {
+  background: var(--clr-primary-hover);
+  box-shadow: var(--glow-strong);
+}
+
+/* Botao secundario */
+.btn--secondary {
+  background: var(--clr-border);
+  color: var(--clr-primary);
+}
+
+.btn--secondary:not(:disabled):hover {
+  background: var(--clr-surface-alt);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Botao fantasma (outline) */
+.btn--ghost {
+  background: transparent;
+  color: var(--clr-text-muted);
+  border: 1.5px solid var(--clr-border);
+}
+
+.btn--ghost:not(:disabled):hover {
+  border-color: var(--clr-primary);
+  color: var(--clr-primary);
+  background: var(--clr-primary-light);
+}
+
+/* ===== PASSO 2: TELA DE CONFIGURACAO ===== */
+
+/* Cabecalho da view (marca + badge do arquivo) */
+.view__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: .75rem;
+}
+
+/* Badge com nome do arquivo carregado */
+.file-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  padding: .35rem .8rem;
+  background: var(--clr-primary-light);
+  border: 1px solid var(--clr-border);
+  border-radius: 20px;
+  font-size: .75rem;
+  font-weight: 600;
+  color: var(--clr-primary);
+  font-family: var(--font-mono);
+}
+
+/* Indicador verde antes do nome do arquivo */
+.file-badge::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--clr-primary);
+  box-shadow: 0 0 6px var(--clr-primary);
+}
+
+/* Grid de dois paineis lado a lado */
+.configure-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Em telas pequenas empilha verticalmente */
+@media (max-width: 700px) {
+  .configure-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Painel (card) */
+.panel {
+  background: var(--clr-surface);
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-sm);
+}
+
+/* Cabecalho do painel */
+.panel__header {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  margin-bottom: .35rem;
+}
+
+/* Badge de letra no painel (A, B) */
+.panel__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: var(--clr-primary);
+  color: var(--clr-bg);
+  font-size: .72rem;
+  font-weight: 800;
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+}
+
+/* Titulo do painel */
+.panel__title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--clr-text);
+}
+
+/* Descricao do painel */
+.panel__desc {
+  font-size: .82rem;
+  color: var(--clr-text-muted);
+  margin-bottom: 1rem;
+}
+
+/* ===== GRID DE BOTOES DE COLUNAS ===== */
+.column-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+}
+
+/* Cada botao de coluna */
+.column-btn {
+  padding: .5rem 1rem;
+  border: 1.5px solid var(--clr-border);
+  border-radius: var(--radius-xs);
+  background: var(--clr-surface-alt);
+  font-family: var(--font-mono);
+  font-size: .8rem;
+  font-weight: 600;
+  color: var(--clr-text);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+/* Hover nos botoes de coluna */
+.column-btn:hover {
+  border-color: var(--clr-primary);
+  color: var(--clr-primary);
+  background: var(--clr-primary-light);
+}
+
+/* Botao de coluna selecionado */
+.column-btn.selected {
+  border-color: var(--clr-primary);
+  background: var(--clr-primary);
+  color: var(--clr-bg);
+  box-shadow: var(--glow);
+}
+
+/* ===== PLACEHOLDER DO PAINEL DE ORDEM ===== */
+.order-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 120px;
+  border: 2px dashed var(--clr-border);
+  border-radius: var(--radius-sm);
+  color: var(--clr-text-muted);
+  font-size: .84rem;
+  text-align: center;
+  padding: 1rem;
+}
+
+.order-placeholder.hidden {
+  display: none;
+}
+
+/* ===== LISTA ARRASTAVEL (SORTABLE) ===== */
+.sortable-list {
+  list-style: none;
+  max-height: 380px;
+  overflow-y: auto;
+}
+
+/* Scrollbar customizada */
+.sortable-list::-webkit-scrollbar {
+  width: 5px;
+}
+
+.sortable-list::-webkit-scrollbar-thumb {
+  background: var(--clr-border);
+  border-radius: 5px;
+}
+
+/* Cada item da lista */
+.sortable-list li {
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+  padding: .6rem .85rem;
+  margin-bottom: .35rem;
+  background: var(--clr-surface-alt);
+  border: 1.5px solid var(--clr-border);
+  border-radius: var(--radius-xs);
+  font-size: .84rem;
+  font-weight: 500;
+  cursor: grab;
+  transition: box-shadow var(--transition), border-color var(--transition), background var(--transition);
+  user-select: none;
+}
+
+/* Hover no item */
+.sortable-list li:hover {
+  border-color: var(--clr-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Item sendo arrastado */
+.sortable-list li.sortable-chosen {
+  border-color: var(--clr-accent);
+  box-shadow: var(--glow-strong);
+  background: var(--clr-primary-light);
+}
+
+/* Fantasma do item na posicao original */
+.sortable-list li.sortable-ghost {
+  opacity: .2;
+}
+
+/* Icone de arrastar (6 pontos) */
+.sortable-list .drag-handle {
+  display: flex;
+  color: var(--clr-text-muted);
+  flex-shrink: 0;
+}
+
+/* Numero de ranking circular */
+.sortable-list .rank {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--clr-primary);
+  color: var(--clr-bg);
+  font-size: .7rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+}
+
+/* Acoes centralizadas abaixo dos paineis */
+.view__actions {
+  display: flex;
+  justify-content: center;
+  gap: .75rem;
+  flex-wrap: wrap;
+}
+
+/* ===== PASSO 3: TELA DE RESULTADO ===== */
+
+/* Tag de status "Ordenacao concluida" */
+.result-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  padding: .35rem .85rem;
+  background: rgba(0, 255, 136, .08);
+  border: 1px solid rgba(0, 255, 136, .25);
+  border-radius: 20px;
+  font-size: .78rem;
+  font-weight: 700;
+  color: var(--clr-primary);
+  font-family: var(--font-mono);
+}
+
+/* Bolinha pulsante na tag */
+.result-tag::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--clr-primary);
+  box-shadow: 0 0 8px var(--clr-primary);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: .4; }
+}
+
+/* Container da tabela com scroll */
+.table-wrapper {
+  overflow: auto;
+  margin-bottom: 1.5rem;
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius);
+  background: var(--clr-surface);
+  max-height: 480px;
+  box-shadow: var(--shadow-sm);
+}
+
+/* Tabela de previa */
+.preview-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .8rem;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+}
+
+/* Celulas da tabela */
+.preview-table th,
+.preview-table td {
+  padding: .5rem .8rem;
+  text-align: left;
+  border-bottom: 1px solid var(--clr-border);
+}
+
+/* Cabecalho da tabela */
+.preview-table th {
+  background: var(--clr-primary);
+  color: var(--clr-bg);
+  font-weight: 700;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+/* Remove borda da ultima linha */
+.preview-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* Linhas pares com fundo alternado */
+.preview-table tbody tr:nth-child(even) td {
+  background: var(--clr-surface-alt);
+}
+
+/* Hover nas linhas */
+.preview-table tbody tr:hover td {
+  background: var(--clr-primary-light);
+}
+
+/* Coluna destacada (a coluna escolhida para ordenacao) */
+.preview-table .highlight-col {
+  background: rgba(0, 255, 136, .06);
+  font-weight: 600;
+  color: var(--clr-primary);
+}
+
+/* Hover na coluna destacada */
+.preview-table tbody tr:hover .highlight-col {
+  background: var(--clr-primary-light);
+}
+
+/* ===== RODAPE FIXO ===== */
+.app-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 100;
+  background: var(--clr-surface);
+  border-top: 1px solid var(--clr-border);
+  padding: .65rem 1.5rem;
+  text-align: center;
+}
+
+/* Botao recomecar escondido por padrao, visivel a partir do passo 2 */
+.footer-restart {
+  display: none;
+}
+
+.app-footer.show-restart .footer-restart {
+  display: inline-flex;
+}
+
+/* Botao de recomecar */
+.footer-restart {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  background: none;
+  border: none;
+  font-family: var(--font);
+  font-size: .82rem;
+  font-weight: 600;
+  color: var(--clr-text-muted);
+  cursor: pointer;
+  padding: .4rem .75rem;
+  border-radius: var(--radius-xs);
+  transition: all var(--transition);
+}
+
+.footer-restart:hover {
+  color: var(--clr-primary);
+  background: var(--clr-primary-light);
+}
+
+/* Credito no rodape */
+.footer-credit {
+  display: block;
+  margin-top: .25rem;
+  font-size: .72rem;
+  color: var(--clr-text-muted);
+  letter-spacing: .02em;
+}
+
+/* ===== OVERLAY DE CARREGAMENTO ===== */
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(10, 15, 10, .88);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .25s ease;
+}
+
+/* Overlay visivel */
+.loading-overlay.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Container do spinner */
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .75rem;
+  text-align: center;
+  padding: 2rem;
+}
+
+/* Spinner neon animado */
+.loading__spinner {
+  width: 48px;
+  height: 48px;
+  border: 3px solid var(--clr-border);
+  border-top-color: var(--clr-primary);
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+  box-shadow: var(--glow);
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Texto do loading */
+.loading__text {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--clr-primary);
+  font-family: var(--font-mono);
+}
+
+/* Dica abaixo do loading */
+.loading__hint {
+  font-size: .82rem;
+  color: var(--clr-text-muted);
+  max-width: 260px;
+}
+
+/* ===== MODAL DE ERRO ===== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(10, 15, 10, .6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .25s ease;
+}
+
+/* Modal visivel */
+.modal-overlay.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Caixa do modal */
+.modal {
+  background: var(--clr-surface);
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  padding: 2rem 2rem 1.5rem;
+  max-width: 400px;
+  width: 100%;
+  text-align: center;
+  transform: translateY(16px) scale(.97);
+  transition: transform .3s ease;
+}
+
+/* Animacao de entrada do modal */
+.modal-overlay.visible .modal {
+  transform: translateY(0) scale(1);
+}
+
+/* Icone do modal */
+.modal__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  margin-bottom: 1rem;
+}
+
+/* Icone de erro (vermelho) */
+.modal__icon--error {
+  background: rgba(255, 59, 59, .1);
+  color: var(--clr-danger);
+}
+
+/* Icone de aviso (amarelo) */
+.modal__icon--warning {
+  background: rgba(255, 184, 48, .1);
+  color: var(--clr-warning);
+}
+
+/* Titulo do modal */
+.modal__title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--clr-text);
+  margin-bottom: .35rem;
+}
+
+/* Mensagem do modal */
+.modal__message {
+  font-size: .88rem;
+  color: var(--clr-text-muted);
+  line-height: 1.55;
+  margin-bottom: 1.35rem;
+}
+
+/* Largura minima do botao do modal */
+.modal .btn {
+  min-width: 120px;
+}
+
+/* ===== RESPONSIVO (TELAS PEQUENAS) ===== */
+@media (max-width: 600px) {
+  #app {
+    padding: 1.25rem 1rem 1.5rem;
+  }
+
+  .view__center {
+    margin-top: 1.5rem;
+  }
+
+  .brand__name {
+    font-size: 1.35rem;
+  }
+
+  .upload-area {
+    padding: 2rem 1rem;
+  }
+
+  .panel {
+    padding: 1.15rem;
+  }
+}
