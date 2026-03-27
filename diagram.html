@@ -1,0 +1,660 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CustomSort — Diagrama de Arquitetura</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      :root {
+        --clr-bg: #0a0f0a;
+        --clr-surface: #111a11;
+        --clr-primary: #00ff88;
+        --clr-primary-dim: #00ff8822;
+        --clr-accent: #39ff14;
+        --clr-text: #e0f5e0;
+        --clr-text-muted: #6b8f6b;
+        --clr-border: #1a3a1a;
+        --clr-border-glow: #00ff8844;
+        --font: 'Inter', system-ui, sans-serif;
+        --font-mono: 'JetBrains Mono', monospace;
+        --radius: 12px;
+        --radius-sm: 8px;
+        --glow: 0 0 20px rgba(0, 255, 136, 0.15);
+        --glow-strong: 0 0 30px rgba(0, 255, 136, 0.25);
+      }
+
+      body {
+        font-family: var(--font);
+        background: var(--clr-bg);
+        color: var(--clr-text);
+        line-height: 1.6;
+        min-height: 100vh;
+        padding: 2rem 1rem 4rem;
+      }
+
+      /* ── Header ─────────────────────────────── */
+      .page-header {
+        text-align: center;
+        margin-bottom: 3rem;
+      }
+
+      .page-header h1 {
+        font-family: var(--font-mono);
+        font-size: 1.6rem;
+        font-weight: 700;
+        color: var(--clr-primary);
+        letter-spacing: -0.02em;
+      }
+
+      .page-header h1 span {
+        color: var(--clr-text);
+      }
+
+      .page-header p {
+        color: var(--clr-text-muted);
+        font-size: 0.9rem;
+        margin-top: 0.4rem;
+      }
+
+      /* ── Container do navegador ─────────────── */
+      .browser-frame {
+        max-width: 1000px;
+        margin: 0 auto;
+        border: 1px solid var(--clr-border);
+        border-radius: var(--radius);
+        background: var(--clr-surface);
+        box-shadow: var(--glow);
+        overflow: hidden;
+      }
+
+      .browser-bar {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1rem;
+        background: #0d130d;
+        border-bottom: 1px solid var(--clr-border);
+      }
+
+      .browser-bar__dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--clr-border);
+      }
+
+      .browser-bar__dot:nth-child(1) { background: #ff5f57; }
+      .browser-bar__dot:nth-child(2) { background: #ffbd2e; }
+      .browser-bar__dot:nth-child(3) { background: #28c840; }
+
+      .browser-bar__label {
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        color: var(--clr-text-muted);
+        margin-left: 0.75rem;
+      }
+
+      .browser-content {
+        padding: 2rem 1.5rem;
+      }
+
+      /* ── Fluxo de 3 colunas ─────────────────── */
+      .flow {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr auto 1fr;
+        align-items: start;
+        gap: 0;
+      }
+
+      /* ── Seta entre colunas ─────────────────── */
+      .flow-arrow {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding-top: 6rem;
+        color: var(--clr-primary);
+      }
+
+      .flow-arrow svg {
+        filter: drop-shadow(0 0 6px rgba(0, 255, 136, 0.4));
+      }
+
+      /* ── Card de passo ──────────────────────── */
+      .step-card {
+        border: 1px solid var(--clr-border);
+        border-radius: var(--radius-sm);
+        background: var(--clr-bg);
+        overflow: hidden;
+      }
+
+      .step-card__header {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid var(--clr-border);
+        background: #0d130d;
+      }
+
+      .step-card__num {
+        width: 26px;
+        height: 26px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        font-family: var(--font-mono);
+        font-size: 0.8rem;
+        font-weight: 700;
+        background: var(--clr-primary);
+        color: var(--clr-bg);
+        flex-shrink: 0;
+      }
+
+      .step-card__title {
+        font-size: 0.95rem;
+        font-weight: 600;
+      }
+
+      .step-card__body {
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+
+      /* ── Bloco dentro do card ───────────────── */
+      .block {
+        border: 1px solid var(--clr-border);
+        border-radius: 6px;
+        overflow: hidden;
+      }
+
+      .block__label {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.4rem 0.65rem;
+        background: #0d130d;
+        border-bottom: 1px solid var(--clr-border);
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+        font-weight: 500;
+        color: var(--clr-text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+
+      .block__label .icon {
+        color: var(--clr-primary);
+        flex-shrink: 0;
+      }
+
+      .block__content {
+        padding: 0.6rem 0.65rem;
+        font-size: 0.78rem;
+        line-height: 1.5;
+        color: var(--clr-text);
+      }
+
+      .block__content code {
+        font-family: var(--font-mono);
+        font-size: 0.72rem;
+        background: var(--clr-primary-dim);
+        color: var(--clr-primary);
+        padding: 0.1rem 0.35rem;
+        border-radius: 4px;
+      }
+
+      /* ── Seta interna entre blocos ──────────── */
+      .inner-arrow {
+        display: flex;
+        justify-content: center;
+        color: var(--clr-primary);
+        opacity: 0.5;
+        margin: -0.2rem 0;
+      }
+
+      /* ── Tag de biblioteca ──────────────────── */
+      .lib-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        font-family: var(--font-mono);
+        font-size: 0.68rem;
+        font-weight: 500;
+        padding: 0.2rem 0.5rem;
+        border-radius: 4px;
+        border: 1px solid var(--clr-border-glow);
+        background: var(--clr-primary-dim);
+        color: var(--clr-primary);
+      }
+
+      .lib-tag--native {
+        border-color: var(--clr-border);
+        background: transparent;
+        color: var(--clr-text-muted);
+      }
+
+      /* ── Formato de dados ───────────────────── */
+      .data-format {
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+        color: var(--clr-text-muted);
+        text-align: center;
+        padding: 0.3rem 0.5rem;
+        background: #0d130d;
+        border-radius: 4px;
+        border: 1px dashed var(--clr-border);
+      }
+
+      /* ── Legenda ────────────────────────────── */
+      .legend {
+        max-width: 1000px;
+        margin: 2rem auto 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.5rem;
+        justify-content: center;
+      }
+
+      .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.8rem;
+        color: var(--clr-text-muted);
+      }
+
+      /* ── Seção de formatos ──────────────────── */
+      .formats-section {
+        max-width: 1000px;
+        margin: 2.5rem auto 0;
+      }
+
+      .formats-section h2 {
+        font-family: var(--font-mono);
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--clr-primary);
+        margin-bottom: 1rem;
+        text-align: center;
+      }
+
+      .formats-flow {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+      }
+
+      .format-box {
+        padding: 0.5rem 0.9rem;
+        border: 1px solid var(--clr-border);
+        border-radius: 6px;
+        background: var(--clr-surface);
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        text-align: center;
+        line-height: 1.5;
+      }
+
+      .format-box strong {
+        display: block;
+        color: var(--clr-primary);
+        font-size: 0.72rem;
+        margin-bottom: 0.15rem;
+      }
+
+      .format-arrow {
+        color: var(--clr-primary);
+        opacity: 0.5;
+        flex-shrink: 0;
+      }
+
+      /* ── Responsivo ─────────────────────────── */
+      @media (max-width: 850px) {
+        .flow {
+          grid-template-columns: 1fr;
+          gap: 0;
+        }
+
+        .flow-arrow {
+          padding: 0.5rem 0;
+          transform: rotate(90deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Header -->
+    <header class="page-header">
+      <h1><span>Custom</span>Sort <span style="font-weight: 400; color: var(--clr-text-muted)">— Arquitetura</span></h1>
+      <p>Diagrama do fluxo de dados da aplicacao — 100% client-side no navegador</p>
+    </header>
+
+    <!-- Frame do navegador -->
+    <div class="browser-frame">
+      <div class="browser-bar">
+        <span class="browser-bar__dot"></span>
+        <span class="browser-bar__dot"></span>
+        <span class="browser-bar__dot"></span>
+        <span class="browser-bar__label">index.html &mdash; Navegador (client-side)</span>
+      </div>
+
+      <div class="browser-content">
+        <div class="flow">
+          <!-- ====== PASSO 1: IMPORTAR ====== -->
+          <div class="step-card">
+            <div class="step-card__header">
+              <span class="step-card__num">1</span>
+              <span class="step-card__title">Importar</span>
+            </div>
+            <div class="step-card__body">
+              <!-- Entrada -->
+              <div class="block">
+                <div class="block__label">
+                  <svg class="icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  Entrada
+                </div>
+                <div class="block__content">
+                  Arquivo <code>.xlsx</code> <code>.xls</code> ou <code>.csv</code><br>
+                  via drag-and-drop ou seletor
+                </div>
+              </div>
+
+              <div class="inner-arrow">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+              </div>
+
+              <!-- FileReader -->
+              <div class="block">
+                <div class="block__label">
+                  <svg class="icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                  API Nativa
+                </div>
+                <div class="block__content">
+                  <code>FileReader.readAsArrayBuffer()</code><br>
+                  Converte arquivo em bytes binarios
+                  <div style="margin-top: 0.4rem">
+                    <span class="lib-tag--native lib-tag">Browser API</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="inner-arrow">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+              </div>
+
+              <!-- SheetJS parse -->
+              <div class="block">
+                <div class="block__label">
+                  <svg class="icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                  Leitura
+                </div>
+                <div class="block__content">
+                  <code>XLSX.read(data, {type:'array'})</code><br>
+                  <code>XLSX.utils.sheet_to_json()</code><br>
+                  Planilha vira array de objetos JS
+                  <div style="margin-top: 0.4rem">
+                    <span class="lib-tag">SheetJS 0.18.5</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="inner-arrow">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+              </div>
+
+              <!-- Saída -->
+              <div class="data-format">[{id: "001", prioridade: "baixa"}, ...]</div>
+            </div>
+          </div>
+
+          <!-- Seta 1→2 -->
+          <div class="flow-arrow">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+          </div>
+
+          <!-- ====== PASSO 2: CONFIGURAR ====== -->
+          <div class="step-card">
+            <div class="step-card__header">
+              <span class="step-card__num">2</span>
+              <span class="step-card__title">Configurar</span>
+            </div>
+            <div class="step-card__body">
+              <!-- Seleção de coluna -->
+              <div class="block">
+                <div class="block__label">
+                  <svg class="icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                  Selecao de Coluna
+                </div>
+                <div class="block__content">
+                  Usuario escolhe 1 coluna como criterio de ordenacao
+                </div>
+              </div>
+
+              <div class="inner-arrow">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+              </div>
+
+              <!-- Valores únicos -->
+              <div class="block">
+                <div class="block__label">
+                  <svg class="icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                  Extracao
+                </div>
+                <div class="block__content">
+                  <code>Set</code> extrai valores unicos da coluna na ordem de aparicao
+                  <div style="margin-top: 0.4rem">
+                    <span class="lib-tag--native lib-tag">Browser API</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="inner-arrow">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+              </div>
+
+              <!-- Drag-and-drop -->
+              <div class="block">
+                <div class="block__label">
+                  <svg class="icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="5 9 2 12 5 15"/><polyline points="9 5 12 2 15 5"/><polyline points="15 19 12 22 9 19"/><polyline points="19 9 22 12 19 15"/></svg>
+                  Drag-and-drop
+                </div>
+                <div class="block__content">
+                  Usuario arrasta itens para definir a ordem desejada
+                  <div style="margin-top: 0.4rem">
+                    <span class="lib-tag">Sortable.js 1.15.6</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="inner-arrow">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+              </div>
+
+              <!-- Mapa + Sort -->
+              <div class="block">
+                <div class="block__label">
+                  <svg class="icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M6 12h12"/><path d="M9 18h6"/></svg>
+                  Ordenacao
+                </div>
+                <div class="block__content">
+                  <code>Map</code> &mdash; mapa de prioridades<br>
+                  <code>{"critica" &rarr; 0, "alta" &rarr; 1, ...}</code><br>
+                  <code>Array.sort()</code> compara indices
+                  <div style="margin-top: 0.4rem">
+                    <span class="lib-tag--native lib-tag">Browser API</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="inner-arrow">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+              </div>
+
+              <div class="data-format">sortedData[] — mesmo formato, nova ordem</div>
+            </div>
+          </div>
+
+          <!-- Seta 2→3 -->
+          <div class="flow-arrow">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+          </div>
+
+          <!-- ====== PASSO 3: RESULTADO ====== -->
+          <div class="step-card">
+            <div class="step-card__header">
+              <span class="step-card__num">3</span>
+              <span class="step-card__title">Resultado</span>
+            </div>
+            <div class="step-card__body">
+              <!-- Preview -->
+              <div class="block">
+                <div class="block__label">
+                  <svg class="icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+                  Preview
+                </div>
+                <div class="block__content">
+                  Tabela HTML exibindo ate 200 linhas dos dados ordenados com coluna destacada
+                </div>
+              </div>
+
+              <div class="inner-arrow">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+              </div>
+
+              <!-- Export XLSX -->
+              <div class="block">
+                <div class="block__label">
+                  <svg class="icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  Export .xlsx
+                </div>
+                <div class="block__content">
+                  <code>XLSX.utils.json_to_sheet()</code><br>
+                  <code>XLSX.writeFile()</code><br>
+                  Gera arquivo Excel direto no navegador
+                  <div style="margin-top: 0.4rem">
+                    <span class="lib-tag">SheetJS 0.18.5</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="inner-arrow">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+              </div>
+
+              <!-- Export CSV -->
+              <div class="block">
+                <div class="block__label">
+                  <svg class="icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  Export .csv
+                </div>
+                <div class="block__content">
+                  <code>XLSX.utils.sheet_to_csv()</code><br>
+                  <code>Blob</code> com BOM UTF-8<br>
+                  <code>URL.createObjectURL()</code> gera link
+                  <div style="margin-top: 0.4rem">
+                    <span class="lib-tag">SheetJS 0.18.5</span>
+                    <span class="lib-tag--native lib-tag">Blob API</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="inner-arrow">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+              </div>
+
+              <!-- Saída -->
+              <div class="data-format">arquivo_customsort.xlsx / .csv</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Legenda -->
+    <div class="legend">
+      <div class="legend-item">
+        <span class="lib-tag">Biblioteca CDN</span>
+        Dependencia externa via CDN
+      </div>
+      <div class="legend-item">
+        <span class="lib-tag--native lib-tag">Browser API</span>
+        API nativa do navegador
+      </div>
+      <div class="legend-item">
+        <span class="data-format" style="font-size: 0.68rem; padding: 0.2rem 0.5rem;">dados</span>
+        Formato dos dados naquele ponto
+      </div>
+    </div>
+
+    <!-- Fluxo de formatos -->
+    <div class="formats-section">
+      <h2>Transformacao dos dados</h2>
+      <div class="formats-flow">
+        <div class="format-box">
+          <strong>Disco</strong>
+          .xlsx / .csv
+        </div>
+        <span class="format-arrow">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </span>
+        <div class="format-box">
+          <strong>FileReader</strong>
+          ArrayBuffer
+        </div>
+        <span class="format-arrow">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </span>
+        <div class="format-box">
+          <strong>Uint8Array</strong>
+          bytes binarios
+        </div>
+        <span class="format-arrow">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </span>
+        <div class="format-box">
+          <strong>SheetJS</strong>
+          Workbook &rarr; Sheet
+        </div>
+        <span class="format-arrow">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </span>
+        <div class="format-box">
+          <strong>JSON</strong>
+          [{col: val}, ...]
+        </div>
+        <span class="format-arrow">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </span>
+        <div class="format-box">
+          <strong>Map + Sort</strong>
+          array ordenado
+        </div>
+        <span class="format-arrow">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </span>
+        <div class="format-box">
+          <strong>Export</strong>
+          .xlsx / .csv
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
